@@ -63,6 +63,12 @@ jobs:
           cp /mingw64/bin/libffi-8.dll "$DLL_DIR/" 2>/dev/null || true
           cp /mingw64/bin/zlib1.dll "$DLL_DIR/" 2>/dev/null || true
 
+          # Bundle Python 3.14 stdlib (critical for sigrok protocol decoders)
+          mkdir -p output/python
+          cp -r /mingw64/lib/python3.14 output/python/
+          # Remove heavy/unneeded stuff to keep artifact small
+          rm -rf output/python/python3.14/test output/python/python3.14/__pycache__ output/python/python3.14/**/__pycache__
+
           # Generate .def for MSVC import lib
           DLL=$(find output/bin -name "libsigrokdecode-*.dll" | head -1)
           if [ -f "$DLL" ]; then
@@ -96,3 +102,4 @@ jobs:
             output/bin/*.lib
             output/bin/*.def
             output/include/*.h
+            output/python/python3.14/**
