@@ -71,7 +71,7 @@ jobs:
         run: |
           $def = Get-ChildItem -Path output/bin -Filter "*.def" | Select-Object -First 1
           if ($def) {
-            lib /def:$def.FullName /out:output/bin/libsigrokdecode.lib /machine:x64
+            lib /def:"$($def.FullName)" /out:output/bin/libsigrokdecode.lib /machine:x64
           }
           Get-ChildItem output/bin/
 
