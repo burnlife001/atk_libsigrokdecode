@@ -40,7 +40,7 @@ jobs:
           sed -i '/^pkginclude_HEADERS/s/$/ atk_decoder.h/' Makefile.am
 
           ./autogen.sh
-          ./configure --enable-shared --disable-static
+          ./configure --enable-shared --disable-static LDFLAGS="-Wl,--export-all-symbols"
           make -j$(nproc)
 
           # Collect outputs (libtool puts DLL in .libs/)
@@ -82,4 +82,5 @@ jobs:
           path: |
             output/bin/*.dll
             output/bin/*.lib
+            output/bin/*.def
             output/include/*.h
