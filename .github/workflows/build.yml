@@ -1,0 +1,75 @@
+name: Build Windows DLL
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  build-win64:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-glib2
+            mingw-w64-x86_64-python3
+            mingw-w64-x86_64-pkg-config
+            autoconf
+            automake-wrapper
+            libtool
+
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          set -e
+
+          # Add atk_decoder.c to the library sources
+          sed -i '/^libsigrokdecode_la_SOURCES = \\/a\
+          \tatk_decoder.c \\' Makefile.am
+
+          # Add atk_decoder.h to installed headers
+          sed -i '/^pkginclude_HEADERS/s/$/ atk_decoder.h/' Makefile.am
+
+          ./autogen.sh
+          ./configure --prefix=$(pwd)/install --enable-shared --disable-static
+          make -j$(nproc)
+          make install
+
+          # Copy atk_decoder.h to install
+          cp atk_decoder.h install/include/
+
+          # Generate .def from DLL
+          DLL=$(find install/bin -name "libsigrokdecode-*.dll" | head -1)
+          gendef "$DLL"
+
+          echo "DLL: $DLL"
+          ls -la *.def install/bin/
+
+      - name: Setup MSVC and create import library
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - name: Create MSVC import lib
+        run: |
+          $defFile = Get-ChildItem -Path . -Filter "*.def" | Select-Object -First 1
+          lib /def:$defFile /out:install/bin/libsigrokdecode.lib /machine:x64
+          ls install/bin/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: atk_libsigrokdecode-win64
+          path: |
+            install/bin/*.dll
+            install/bin/*.lib
+            install/include/*.h
